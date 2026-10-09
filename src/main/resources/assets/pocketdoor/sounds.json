@@ -3,11 +3,10 @@
     "sounds": [
       {
         "name": "pocketdoor:ambiance_silgo",
-        "stream": true,
-        "volume": 1.0
+        "stream": true
       }
     ],
-    "category": "music"
+    "category": "ambient"
   },
   "replique_1_silgo": {
     "sounds": [
