@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "north": {
+      "model": "pocketdoor:block/pocket_door",
+      "y": 0
+    },
+    "east": {
+      "model": "pocketdoor:block/pocket_door",
+      "y": 90
+    },
+    "south": {
+      "model": "pocketdoor:block/pocket_door",
+      "y": 180
+    },
+    "west": {
+      "model": "pocketdoor:block/pocket_door",
+      "y": 270
+    }
+  }
+}

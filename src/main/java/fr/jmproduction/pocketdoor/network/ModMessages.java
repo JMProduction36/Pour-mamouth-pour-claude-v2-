@@ -1,0 +1,111 @@
+package fr.jmproduction.pocketdoor.network;
+
+import fr.jmproduction.pocketdoor.PocketDoorMod;
+import fr.jmproduction.pocketdoor.data.PocketDoorSavedData;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public final class ModMessages {
+    public static final ResourceLocation OPEN_POCKET_DOOR = id("open_pocket_door");
+    public static final ResourceLocation START_DIALOGUE = id("start_dialogue");
+    public static final ResourceLocation DIALOGUE_FINISHED = id("dialogue_finished");
+
+    private static final List<Pending> PENDING = new ArrayList<>();
+
+    private record Pending(ServerPlayer player, int ticks) {
+    }
+
+    private static ResourceLocation id(String path) {
+        return new ResourceLocation(PocketDoorMod.MOD_ID, path);
+    }
+
+    public static void registerC2SPackets() {
+        ServerPlayNetworking.registerGlobalReceiver(
+                OPEN_POCKET_DOOR,
+                (server, player, handler, buffer, responseSender) -> server.execute(
+                        () -> PENDING.add(new Pending(player, 60))
+                )
+        );
+
+        ServerPlayNetworking.registerGlobalReceiver(
+                DIALOGUE_FINISHED,
+                (server, player, handler, buffer, responseSender) -> server.execute(
+                        () -> {
+                            PocketDoorSavedData.get(player.getLevel()).markFinished(player.getUUID());
+                            player.removeEffect(MobEffects.DARKNESS);
+                        }
+                )
+        );
+
+        ServerTickEvents.END_SERVER_TICK.register(ModMessages::tick);
+    }
+
+    private static void tick(MinecraftServer server) {
+        for (int index = PENDING.size() - 1; index >= 0; index--) {
+            Pending pending = PENDING.get(index);
+
+            if (pending.ticks() <= 1) {
+                place(pending.player());
+                PENDING.remove(index);
+            } else {
+                PENDING.set(index, new Pending(pending.player(), pending.ticks() - 1));
+            }
+        }
+    }
+
+    private static void place(ServerPlayer player) {
+        ServerLevel level = player.getLevel();
+        Direction facing = player.getDirection().getOpposite();
+        BlockPos position = player.blockPosition().relative(player.getDirection(), 6);
+        position = new BlockPos(
+                position.getX(),
+                level.getHeight(Heightmap.Types.MOTION_BLOCKING, position.getX(), position.getZ()),
+                position.getZ()
+        );
+
+        level.setBlock(
+                position,
+                PocketDoorMod.POCKET_DOOR.defaultBlockState().setValue(
+                        HorizontalDirectionalBlock.FACING,
+                        facing
+                ),
+                3
+        );
+        level.sendParticles(
+                ParticleTypes.FLAME,
+                position.getX() + 0.5,
+                position.getY() + 1,
+                position.getZ() + 0.5,
+                12,
+                0.3,
+                0.5,
+                0.3,
+                0.02
+        );
+    }
+
+    public static boolean isFinished(ServerPlayer player) {
+        return PocketDoorSavedData.get(player.getLevel()).isFinished(player.getUUID());
+    }
+
+    public static void sendStartDialogue(ServerPlayer player) {
+        ServerPlayNetworking.send(player, START_DIALOGUE, PacketByteBufs.empty());
+    }
+
+    private ModMessages() {
+    }
+}
