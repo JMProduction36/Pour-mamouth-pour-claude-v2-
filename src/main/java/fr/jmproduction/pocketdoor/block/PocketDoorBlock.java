@@ -33,31 +33,24 @@ public class PocketDoorBlock extends HorizontalDirectionalBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING);
-    }
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING); }
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return switch (state.getValue(FACING)) {
-            case SOUTH -> SOUTH_SHAPE;
-            case EAST -> EAST_SHAPE;
-            case WEST -> WEST_SHAPE;
-            default -> NORTH_SHAPE;
+            case SOUTH -> SOUTH_SHAPE; case EAST -> EAST_SHAPE; case WEST -> WEST_SHAPE; default -> NORTH_SHAPE;
         };
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
-                                 InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
             if (!ModMessages.isFinished(serverPlayer)) {
+                serverPlayer.addEffect(new MobEffectInstance(MobEffects.DARKNESS, Integer.MAX_VALUE, 0, false, false));
+                ModMessages.scheduleDialogueBlindness(serverPlayer, 7);
                 ModMessages.sendStartDialogue(serverPlayer);
-                serverPlayer.addEffect(new MobEffectInstance(
-                        MobEffects.DARKNESS, Integer.MAX_VALUE, 0, false, false));
             } else {
-                player.displayClientMessage(Component.literal(
-                        "Cette porte ne semble pas r\u00e9agir \u00e0 votre pr\u00e9sence pour l'instant."), true);
+                player.displayClientMessage(Component.literal("Cette porte ne semble pas réagir à votre présence pour l'instant."), true);
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

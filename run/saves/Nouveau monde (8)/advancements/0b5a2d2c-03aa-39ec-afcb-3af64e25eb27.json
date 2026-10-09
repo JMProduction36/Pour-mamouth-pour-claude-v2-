@@ -1,0 +1,9 @@
+{
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:sunflower_plains": "2026-10-09 19:48:04 +0200"
+    },
+    "done": false
+  },
+  "DataVersion": 3120
+}
