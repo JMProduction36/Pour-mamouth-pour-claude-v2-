@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "stage=inactive": {
+      "model": "pocketdoor:block/resonance_chamber"
+    },
+    "stage=activating": {
+      "model": "pocketdoor:block/resonance_chamber"
+    },
+    "stage=resonating": {
+      "model": "pocketdoor:block/resonance_chamber"
+    },
+    "stage=complete": {
+      "model": "pocketdoor:block/resonance_chamber"
+    }
+  }
+}

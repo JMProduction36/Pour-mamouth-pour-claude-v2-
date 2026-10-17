@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smelting",
+  "ingredient": {
+    "item": "pocketdoor:raw_tertarium"
+  },
+  "result": "pocketdoor:purified_tertarium_crystal",
+  "experience": 1.0,
+  "cookingtime": 200
+}

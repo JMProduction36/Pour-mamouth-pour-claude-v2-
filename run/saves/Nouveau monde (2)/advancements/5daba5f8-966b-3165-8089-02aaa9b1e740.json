@@ -1,9 +1,0 @@
-{
-  "minecraft:adventure/adventuring_time": {
-    "criteria": {
-      "minecraft:old_growth_birch_forest": "2026-10-09 19:55:10 +0200"
-    },
-    "done": false
-  },
-  "DataVersion": 3120
-}

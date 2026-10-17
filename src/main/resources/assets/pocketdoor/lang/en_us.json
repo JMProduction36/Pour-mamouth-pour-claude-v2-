@@ -1,3 +1,17 @@
 {
-  "block.pocketdoor.pocket_door": "Pocket Door"
+  "block.pocketdoor.pocket_door": "Pocket Door",
+  "item.pocketdoor.raw_tertarium": "Raw Tertarium",
+  "item.pocketdoor.tertarium_ingot": "Tertarium Ingot",
+  "block.pocketdoor.tertarium_ore": "Tertarium Ore",
+  "block.pocketdoor.deepslate_tertarium_ore": "Deepslate Tertarium Ore",
+  "block.pocketdoor.resonance_chamber": "Resonance Chamber",
+  "container.pocketdoor.resonance_chamber": "Resonance Chamber",
+  "category.pocketdoor": "Pocket Door",
+  "key.pocketdoor.open": "Open Pocket Door",
+  "key.pocketdoor.meteorite": "Summon meteorite",
+  "pocketdoor.stage.inactive": "Inactive",
+  "pocketdoor.stage.activating": "Activating",
+  "pocketdoor.stage.resonating": "Resonating",
+  "pocketdoor.stage.complete": "Complete",
+  "item.pocketdoor.purified_tertarium_crystal": "Purified Tertarium Crystal"
 }

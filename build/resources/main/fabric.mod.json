@@ -14,7 +14,8 @@
       "fr.jmproduction.pocketdoor.PocketDoorMod"
     ],
     "client": [
-      "fr.jmproduction.pocketdoor.client.KeybindingsHandler"
+      "fr.jmproduction.pocketdoor.client.KeybindingsHandler",
+      "fr.jmproduction.pocketdoor.client.ResonanceClient"
     ]
   },
   "depends": {

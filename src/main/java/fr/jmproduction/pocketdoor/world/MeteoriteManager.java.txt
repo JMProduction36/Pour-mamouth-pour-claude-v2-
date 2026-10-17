@@ -1,0 +1,174 @@
+package fr.jmproduction.pocketdoor.world;
+
+import fr.jmproduction.pocketdoor.PocketDoorMod;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Gère les météorites faites de vrais blocs : spawn, descente tick par tick, impact
+ * et placement de la Pocket Door au sommet. Tout s'exécute sur le thread serveur.
+ */
+public final class MeteoriteManager {
+
+    private static final int RADIUS = 7;
+    private static final int DISTANCE_AHEAD = 20;
+    private static final int SPAWN_HEIGHT_ABOVE_GROUND = 70;
+    private static final int COOLDOWN_TICKS = 20 * 15;
+
+    private static final Map<UUID, Integer> COOLDOWNS = new HashMap<>();
+    private static final List<Meteorite> ACTIVE = new ArrayList<>();
+
+    private static final class Meteorite {
+        final UUID owner;
+        final Direction ownerFacing;
+        final ServerLevel level;
+        final int x;
+        final int z;
+        final int groundY;
+        int centerY;
+        final Map<BlockPos, BlockState> originals = new HashMap<>();
+
+        Meteorite(ServerPlayer player, int x, int z, int groundY, int centerY) {
+            this.owner = player.getUUID();
+            this.ownerFacing = player.getDirection();
+            this.level = player.getLevel();
+            this.x = x;
+            this.z = z;
+            this.groundY = groundY;
+            this.centerY = centerY;
+        }
+    }
+
+    private MeteoriteManager() {}
+
+    public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(MeteoriteManager::tick);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                server.execute(() -> onDisconnect(handler.getPlayer().getUUID())));
+    }
+
+    /** À appeler sur le thread serveur. */
+    public static void summon(ServerPlayer player) {
+        UUID id = player.getUUID();
+        if (COOLDOWNS.getOrDefault(id, 0) > 0) return;
+        if (ACTIVE.stream().anyMatch(m -> m.owner.equals(id))) return;
+
+        Direction look = player.getDirection();
+        int x = player.blockPosition().getX() + look.getStepX() * DISTANCE_AHEAD;
+        int z = player.blockPosition().getZ() + look.getStepZ() * DISTANCE_AHEAD;
+
+        ServerLevel level = player.getLevel();
+        if (!level.hasChunkAt(new BlockPos(x, 0, z))) return;
+
+        int groundY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
+        int centerY = Math.min(groundY + RADIUS + SPAWN_HEIGHT_ABOVE_GROUND, level.getMaxBuildHeight() - RADIUS - 1);
+
+        Meteorite meteorite = new Meteorite(player, x, z, groundY, centerY);
+        COOLDOWNS.put(id, COOLDOWN_TICKS);
+        place(meteorite);
+        ACTIVE.add(meteorite);
+    }
+
+    private static void tick(MinecraftServer server) {
+        COOLDOWNS.replaceAll((id, remaining) -> Math.max(0, remaining - 1));
+
+        for (int i = ACTIVE.size() - 1; i >= 0; i--) {
+            Meteorite m = ACTIVE.get(i);
+            int nextCenterY = m.centerY - 1;
+
+            if (!m.level.hasChunkAt(new BlockPos(m.x, nextCenterY, m.z))) continue;
+
+            boolean reachedGround = nextCenterY <= m.groundY + RADIUS;
+            if (reachedGround || isBlockedBelow(m, nextCenterY)) {
+                restore(m);
+                impact(m);
+                ACTIVE.remove(i);
+            } else {
+                restore(m);
+                m.centerY = nextCenterY;
+                place(m);
+            }
+        }
+    }
+
+    private static boolean isBlockedBelow(Meteorite m, int centerY) {
+        BlockPos below = new BlockPos(m.x, centerY - RADIUS - 1, m.z);
+        return !m.level.getBlockState(below).isAir();
+    }
+
+    private static void place(Meteorite m) {
+        int r2 = RADIUS * RADIUS;
+        for (int dx = -RADIUS; dx <= RADIUS; dx++) {
+            for (int dy = -RADIUS; dy <= RADIUS; dy++) {
+                for (int dz = -RADIUS; dz <= RADIUS; dz++) {
+                    int d2 = dx * dx + dy * dy + dz * dz;
+                    if (d2 > r2) continue;
+
+                    BlockPos pos = new BlockPos(m.x + dx, m.centerY + dy, m.z + dz);
+                    if (!m.level.hasChunkAt(pos) || m.level.isOutsideBuildHeight(pos)) continue;
+
+                    m.originals.putIfAbsent(pos, m.level.getBlockState(pos));
+                    m.level.setBlock(pos, blockFor(d2), 3);
+                }
+            }
+        }
+    }
+
+    private static BlockState blockFor(int distanceSquared) {
+        if (distanceSquared <= 4) return Blocks.OBSIDIAN.defaultBlockState();
+        if (distanceSquared <= 24) return Blocks.MAGMA_BLOCK.defaultBlockState();
+        return Blocks.BLACKSTONE.defaultBlockState();
+    }
+
+    private static void restore(Meteorite m) {
+        for (Map.Entry<BlockPos, BlockState> entry : m.originals.entrySet()) {
+            if (m.level.hasChunkAt(entry.getKey())) {
+                m.level.setBlock(entry.getKey(), entry.getValue(), 3);
+            }
+        }
+        m.originals.clear();
+    }
+
+    private static void impact(Meteorite m) {
+        m.centerY = m.groundY + RADIUS;
+        place(m);
+        m.originals.clear(); // la météorite reste définitivement posée
+
+        BlockPos impactPos = new BlockPos(m.x, m.groundY, m.z);
+        m.level.playSound(null, impactPos, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 4.0F, 0.6F);
+        m.level.sendParticles(ParticleTypes.EXPLOSION, m.x + 0.5, m.groundY + 1.0, m.z + 0.5, 12, 3.0, 1.5, 3.0, 0.1);
+        m.level.sendParticles(ParticleTypes.LAVA, m.x + 0.5, m.groundY + RADIUS, m.z + 0.5, 40, 4.0, 3.0, 4.0, 0.0);
+
+        BlockPos doorPos = new BlockPos(m.x, m.groundY + RADIUS * 2 + 1, m.z);
+        BlockState door = PocketDoorMod.POCKET_DOOR.defaultBlockState()
+                .setValue(HorizontalDirectionalBlock.FACING, m.ownerFacing.getOpposite());
+        m.level.setBlock(doorPos, door, 3);
+    }
+
+    private static void onDisconnect(UUID id) {
+        COOLDOWNS.remove(id);
+        for (int i = ACTIVE.size() - 1; i >= 0; i--) {
+            if (ACTIVE.get(i).owner.equals(id)) {
+                restore(ACTIVE.remove(i));
+            }
+        }
+    }
+}

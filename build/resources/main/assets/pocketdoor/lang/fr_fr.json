@@ -1,3 +1,17 @@
 {
-  "block.pocketdoor.pocket_door": "Porte étrange"
+  "block.pocketdoor.pocket_door": "Porte étrange",
+  "item.pocketdoor.raw_tertarium": "Tertarium brut",
+  "item.pocketdoor.tertarium_ingot": "Lingot de tertarium",
+  "block.pocketdoor.tertarium_ore": "Minerai de Tertarium",
+  "block.pocketdoor.deepslate_tertarium_ore": "Minerai de Tertarium des abîmes",
+  "block.pocketdoor.resonance_chamber": "Chambre de résonance",
+  "container.pocketdoor.resonance_chamber": "Chambre de résonance",
+  "category.pocketdoor": "Porte de poche",
+  "key.pocketdoor.open": "Ouvrir la porte",
+  "key.pocketdoor.meteorite": "Invoquer une météorite",
+  "pocketdoor.stage.inactive": "Inactive",
+  "pocketdoor.stage.activating": "Activation",
+  "pocketdoor.stage.resonating": "Résonance",
+  "pocketdoor.stage.complete": "Terminée",
+  "item.pocketdoor.purified_tertarium_crystal": "Cristal de Tertarium purifié"
 }
