@@ -1,0 +1,11 @@
+{
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:snowy_taiga": "2026-10-18 18:48:02 +0200",
+      "minecraft:frozen_ocean": "2026-10-18 18:48:33 +0200",
+      "minecraft:deep_frozen_ocean": "2026-10-18 18:48:45 +0200"
+    },
+    "done": false
+  },
+  "DataVersion": 3120
+}
