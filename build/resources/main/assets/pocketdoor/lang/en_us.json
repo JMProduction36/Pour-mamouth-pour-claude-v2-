@@ -13,5 +13,6 @@
   "pocketdoor.stage.activating": "Activating",
   "pocketdoor.stage.resonating": "Resonating",
   "pocketdoor.stage.complete": "Complete",
-  "item.pocketdoor.purified_tertarium_crystal": "Purified Tertarium Crystal"
+  "item.pocketdoor.purified_tertarium_crystal": "Purified Tertarium Crystal",
+  "block.pocketdoor.cartostellaire": "Cartostellaire"
 }

@@ -44,6 +44,6 @@ public class PocketDoorMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ModMessages.registerC2SPackets(); TertariumWorldGen.register();
+        Content.class.getName(); ModMessages.registerC2SPackets(); TertariumWorldGen.register();
     }
 }

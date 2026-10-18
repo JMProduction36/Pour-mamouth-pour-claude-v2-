@@ -1,0 +1,12 @@
+{
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:beach": "2026-10-17 21:09:41 +0200",
+      "minecraft:sparse_jungle": "2026-10-17 21:10:41 +0200",
+      "minecraft:lukewarm_ocean": "2026-10-17 21:11:36 +0200",
+      "minecraft:deep_lukewarm_ocean": "2026-10-17 21:11:41 +0200"
+    },
+    "done": false
+  },
+  "DataVersion": 3120
+}

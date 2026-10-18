@@ -1,0 +1,26 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pocketdoor:item/pap_foudre_0"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pocketdoor:charge": 1.0
+      },
+      "model": "pocketdoor:item/pap_foudre_1"
+    },
+    {
+      "predicate": {
+        "pocketdoor:charge": 2.0
+      },
+      "model": "pocketdoor:item/pap_foudre_2"
+    },
+    {
+      "predicate": {
+        "pocketdoor:charge": 3.0
+      },
+      "model": "pocketdoor:item/pap_foudre_3"
+    }
+  ]
+}

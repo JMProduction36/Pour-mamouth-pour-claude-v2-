@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pocketdoor:item/pap_foudre"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pocketdoor:charge": 0.33333334
+      },
+      "model": "pocketdoor:item/pap_foudre_1"
+    },
+    {
+      "predicate": {
+        "pocketdoor:charge": 0.6666667
+      },
+      "model": "pocketdoor:item/pap_foudre_2"
+    },
+    {
+      "predicate": {
+        "pocketdoor:charge": 1.0
+      },
+      "model": "pocketdoor:item/pap_foudre_3"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "pocketdoor:item/pap_foudre_3"
+    }
+  ]
+}
