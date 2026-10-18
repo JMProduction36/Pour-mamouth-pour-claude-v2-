@@ -1,0 +1,50 @@
+{
+  "mappings": {
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireCameraAccessor": {
+      "detached": "field_18719:Z",
+      "setPosition": "method_19322(Lnet/minecraft/class_243;)V",
+      "setRotation": "method_19325(FF)V"
+    },
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireCameraMixin": {
+      "setup": "Lnet/minecraft/class_4184;method_19321(Lnet/minecraft/class_1922;Lnet/minecraft/class_1297;ZZF)V"
+    },
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireGameRendererMixin": {
+      "renderItemInHand": "Lnet/minecraft/class_757;method_3172(Lnet/minecraft/class_4587;Lnet/minecraft/class_4184;F)V"
+    },
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireGuiMixin": {
+      "render": "Lnet/minecraft/class_329;method_1753(Lnet/minecraft/class_4587;F)V"
+    },
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireMouseHandlerMixin": {
+      "onScroll": "Lnet/minecraft/class_312;method_1598(JDD)V",
+      "turnPlayer": "Lnet/minecraft/class_312;method_1606()V"
+    },
+    "fr/jmproduction/pocketdoor/mixin/CartostellaireScreenMixin": {
+      "setScreen": "Lnet/minecraft/class_310;method_1507(Lnet/minecraft/class_437;)V"
+    }
+  },
+  "data": {
+    "named:intermediary": {
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireCameraAccessor": {
+        "detached": "field_18719:Z",
+        "setPosition": "method_19322(Lnet/minecraft/class_243;)V",
+        "setRotation": "method_19325(FF)V"
+      },
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireCameraMixin": {
+        "setup": "Lnet/minecraft/class_4184;method_19321(Lnet/minecraft/class_1922;Lnet/minecraft/class_1297;ZZF)V"
+      },
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireGameRendererMixin": {
+        "renderItemInHand": "Lnet/minecraft/class_757;method_3172(Lnet/minecraft/class_4587;Lnet/minecraft/class_4184;F)V"
+      },
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireGuiMixin": {
+        "render": "Lnet/minecraft/class_329;method_1753(Lnet/minecraft/class_4587;F)V"
+      },
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireMouseHandlerMixin": {
+        "onScroll": "Lnet/minecraft/class_312;method_1598(JDD)V",
+        "turnPlayer": "Lnet/minecraft/class_312;method_1606()V"
+      },
+      "fr/jmproduction/pocketdoor/mixin/CartostellaireScreenMixin": {
+        "setScreen": "Lnet/minecraft/class_310;method_1507(Lnet/minecraft/class_437;)V"
+      }
+    }
+  }
+}

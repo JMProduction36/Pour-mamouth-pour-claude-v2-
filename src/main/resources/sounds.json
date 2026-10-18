@@ -1,0 +1,47 @@
+{
+  "ambiance_silgo": {
+    "sounds": [
+      {
+        "name": "pocketdoor:ambiance_silgo",
+        "stream": true
+      }
+    ],
+    "category": "ambient"
+  },
+  "replique_1_silgo": {
+    "sounds": [
+      "pocketdoor:replique_1_silgo"
+    ],
+    "category": "ambient"
+  },
+  "replique_2_silgo": {
+    "sounds": [
+      "pocketdoor:replique_2_silgo"
+    ],
+    "category": "ambient"
+  },
+  "replique_3_silgo": {
+    "sounds": [
+      "pocketdoor:replique_3_silgo"
+    ],
+    "category": "ambient"
+  },
+  "replique_4_silgo": {
+    "sounds": [
+      "pocketdoor:replique_4_silgo"
+    ],
+    "category": "ambient"
+  },
+  "replique_5_silgo": {
+    "sounds": [
+      "pocketdoor:replique_5_silgo"
+    ],
+    "category": "ambient"
+  },
+  "replique_6_silgo": {
+    "sounds": [
+      "pocketdoor:replique_6_silgo"
+    ],
+    "category": "ambient"
+  }
+}

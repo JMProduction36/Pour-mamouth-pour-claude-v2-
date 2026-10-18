@@ -1,1 +1,1 @@
-{"variants":{"":{"model":"pocketdoor:block/cartostellaire"}}}
+{"type":"minecraft:block","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"pocketdoor:cartostellaire"}],"conditions":[{"condition":"minecraft:survives_explosion"}]}]}

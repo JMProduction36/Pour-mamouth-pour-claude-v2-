@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 public class ResonanceChamberMenu extends AbstractContainerMenu {
     // Slot coordinates are the top-left of the 16x16 item area; the rendered slot border is x-1,y-1.
     // The 18x18 rectangles are centered in the two 32px inner frame openings.
-    private static final int INPUT_X = 38, OUTPUT_X = 199, MACHINE_Y = 68;
+    private static final int INPUT_X = 36, OUTPUT_X = 191, MACHINE_Y = 53;
     // 9*18 = 162px, centered in the 256px artwork: (256-162)/2 = 47.
     private static final int INV_X = 47, INV_Y = 117, HOTBAR_Y = 171, SLOT_STEP = 18;
     private final Container container;

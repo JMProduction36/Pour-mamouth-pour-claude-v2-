@@ -8,7 +8,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.entity.LightningBolt;
@@ -35,13 +34,6 @@ public class PapierFoudreProjectile extends ThrowableItemProjectile {
     @Override
     protected Item getDefaultItem() {
         return Content.PAPIER_FOUDRE;
-    }
-
-    @Override
-    public ItemStack getItem() {
-        ItemStack stack = super.getItem();
-        stack.getOrCreateTag().putInt("CustomModelData", 1);
-        return stack;
     }
 
     @Override

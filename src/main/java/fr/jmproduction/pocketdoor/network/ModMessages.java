@@ -1,8 +1,8 @@
 package fr.jmproduction.pocketdoor.network;
 
 import fr.jmproduction.pocketdoor.PocketDoorMod;
+import net.minecraft.network.FriendlyByteBuf;
 import fr.jmproduction.pocketdoor.data.PocketDoorSavedData;
-import fr.jmproduction.pocketdoor.world.MeteoriteManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -28,6 +28,7 @@ public final class ModMessages {
     public static final ResourceLocation START_DIALOGUE = id("start_dialogue");
     public static final ResourceLocation DIALOGUE_FINISHED = id("dialogue_finished");
     public static final ResourceLocation SUMMON_METEORITE = id("summon_meteorite");
+    public static final ResourceLocation CARTOSTELLAIRE_START = id("cartostellaire_start");
     private static final Map<UUID, Integer> COOLDOWNS = new HashMap<>();
     private static final Set<UUID> ACTIVE_DIALOGUES = new HashSet<>();
     private static final List<Meteorite> METEORITES = new ArrayList<>();
@@ -41,8 +42,7 @@ public final class ModMessages {
     private static ResourceLocation id(String path) { return new ResourceLocation(PocketDoorMod.MOD_ID, path); }
 
     public static void registerC2SPackets() {
-        ServerPlayNetworking.registerGlobalReceiver(SUMMON_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> MeteoriteManager.summon(player)));
-        MeteoriteManager.register();
+        ServerPlayNetworking.registerGlobalReceiver(SUMMON_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> summonMeteorite(player)));
         ServerPlayNetworking.registerGlobalReceiver(OPEN_POCKET_DOOR, (server, player, handler, buf, responseSender) -> server.execute(() -> beginSequence(player)));
         ServerPlayNetworking.registerGlobalReceiver(DIALOGUE_FINISHED, (server, player, handler, buf, responseSender) -> server.execute(() -> {
             PocketDoorSavedData.get(player.getLevel()).markFinished(player.getUUID());
@@ -54,10 +54,10 @@ public final class ModMessages {
     }
 
     private static void cleanup(UUID id) {
-        ACTIVE_DIALOGUES.remove(id); COOLDOWNS.remove(id); PENDING.removeIf(p -> p.player().getUUID().equals(id)); MeteoriteManager.disconnect(id);
+        ACTIVE_DIALOGUES.remove(id); COOLDOWNS.remove(id); PENDING.removeIf(p -> p.player().getUUID().equals(id));
         for (int i = METEORITES.size() - 1; i >= 0; i--) if (METEORITES.get(i).player.getUUID().equals(id)) { restore(METEORITES.remove(i)); }
     }
-    private static void legacySummonMeteorite(ServerPlayer player) {
+    private static void summonMeteorite(ServerPlayer player) {
         UUID id = player.getUUID();
         if (ACTIVE_DIALOGUES.contains(id) || COOLDOWNS.getOrDefault(id, 0) > 0 || METEORITES.stream().anyMatch(m -> m.player.getUUID().equals(id))) return;
         Direction look = player.getDirection(); int x = player.blockPosition().getX() + look.getStepX() * 20; int z = player.blockPosition().getZ() + look.getStepZ() * 20;
@@ -83,5 +83,11 @@ public final class ModMessages {
     private static void beginSequence(ServerPlayer player) { if(ACTIVE_DIALOGUES.add(player.getUUID())) PENDING.add(new Pending(player,100)); }
     public static boolean isFinished(ServerPlayer player) { return PocketDoorSavedData.get(player.getLevel()).isFinished(player.getUUID()); }
     public static void sendStartDialogue(ServerPlayer player) { ServerPlayNetworking.send(player,START_DIALOGUE,PacketByteBufs.empty()); }
+    public static void sendCartostellaireStart(ServerPlayer player, BlockPos pos) {
+        FriendlyByteBuf buf = PacketByteBufs.create();
+        buf.writeBlockPos(pos);
+        ServerPlayNetworking.send(player, CARTOSTELLAIRE_START, buf);
+    }
+
     private ModMessages() {}
 }
