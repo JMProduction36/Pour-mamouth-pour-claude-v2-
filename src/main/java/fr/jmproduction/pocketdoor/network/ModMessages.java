@@ -33,6 +33,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Server networking plus the server-authoritative meteorite event. */
 public final class ModMessages {
@@ -41,7 +42,11 @@ public final class ModMessages {
     public static final ResourceLocation DIALOGUE_FINISHED = id("dialogue_finished");
     public static final ResourceLocation SUMMON_METEORITE = id("summon_meteorite");
     public static final ResourceLocation CARTOSTELLAIRE_START = id("cartostellaire_start");
+    public static final ResourceLocation VEILLEUR_ANOMALY = id("veilleur_anomaly");
+    public static final ResourceLocation VEILLEUR_METEORITE = id("veilleur_meteorite");
     private static final Map<UUID, Integer> COOLDOWNS = new HashMap<>();
+    private static final Set<UUID> ARMED_PLAYERS = ConcurrentHashMap.newKeySet();
+    private static final Map<UUID, Long> ARMED_POS = new ConcurrentHashMap<>();
     private static final Set<UUID> ACTIVE_DIALOGUES = new HashSet<>();
     private static final List<Meteorite> METEORITES = new ArrayList<>();
     private static final List<ImpactAnimation> IMPACTS = new ArrayList<>();
@@ -71,11 +76,8 @@ public final class ModMessages {
     private static ResourceLocation id(String path) { return new ResourceLocation(PocketDoorMod.MOD_ID, path); }
 
     public static void registerC2SPackets() {
-        ServerPlayNetworking.registerGlobalReceiver(SUMMON_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> {
-            // Deliberate receipt marker: proves that the client packet reached the server.
-            player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Météorite invoquée"));
-            summonMeteorite(player);
-        }));
+        ServerPlayNetworking.registerGlobalReceiver(SUMMON_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> { player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Météorite invoquée")); summonMeteorite(player); }));
+        ServerPlayNetworking.registerGlobalReceiver(VEILLEUR_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> { if (isArmed(player)) { clearArmed(player); summonMeteorite(player); } }));
         ServerPlayNetworking.registerGlobalReceiver(OPEN_POCKET_DOOR, (server, player, handler, buf, responseSender) -> server.execute(() -> beginSequence(player)));
         ServerPlayNetworking.registerGlobalReceiver(DIALOGUE_FINISHED, (server, player, handler, buf, responseSender) -> server.execute(() -> {
             PocketDoorSavedData.get(player.getLevel()).markFinished(player.getUUID());
@@ -89,6 +91,8 @@ public final class ModMessages {
     private static void cleanup(UUID id) {
         ACTIVE_DIALOGUES.remove(id); COOLDOWNS.remove(id); PENDING.removeIf(p -> p.player().getUUID().equals(id));
         METEORITES.removeIf(m -> m.player.getUUID().equals(id));
+        ARMED_PLAYERS.remove(id);
+        ARMED_POS.remove(id);
     }
 
     private static void summonMeteorite(ServerPlayer player) {
@@ -124,12 +128,17 @@ public final class ModMessages {
             Meteorite m = METEORITES.get(i);
             if (!m.player.isAlive() || m.player.getLevel() != m.level) { METEORITES.remove(i); continue; }
             double px = m.px(), py = m.py(), pz = m.pz();
+            orientPlayerTo(m.player, px, py, pz);
             flightParticles(m, px, py, pz);
             m.age++;
             if (m.age >= m.flightTicks) { impact(m); METEORITES.remove(i); }
         }
         for (int i = IMPACTS.size() - 1; i >= 0; i--) {
-            ImpactAnimation effect = IMPACTS.get(i); impactParticles(effect); effect.age++;
+            ImpactAnimation effect = IMPACTS.get(i);
+            if (effect.focus.isAlive() && effect.focus.getLevel() == effect.level) {
+                orientPlayerTo(effect.focus, effect.x, effect.y, effect.z);
+            }
+            impactParticles(effect); effect.age++;
             if (effect.age > 36) IMPACTS.remove(i);
         }
         for (int i = PENDING.size() - 1; i >= 0; i--) { Pending p = PENDING.get(i); if (p.ticks() <= 1) { sendStartDialogue(p.player()); PENDING.remove(i); } else PENDING.set(i, new Pending(p.player(), p.ticks() - 1)); }
@@ -309,6 +318,29 @@ public final class ModMessages {
     private static double valueNoise(int x, int y, int z) { return (hash(x / 2, y / 2, z / 2) & 1023) / 1023.0; }
     private static int hash(int x, int y, int z) { int h = x * 73428767 ^ y * 912931 ^ z * 42317861; h = (h ^ (h >>> 13)) * 1274126177; return h ^ (h >>> 16); }
 
+    /**
+     * Keeps the triggering player looking at the moving meteorite without moving the
+     * player.  The server packet is used because the meteorite trajectory is server
+     * authoritative; interpolating a small angular step avoids a jarring snap while
+     * still correcting the client every tick.
+     */
+    private static void orientPlayerTo(ServerPlayer player, double targetX, double targetY, double targetZ) {
+        double dx = targetX - player.getX();
+        double dy = targetY - (player.getY() + player.getEyeHeight());
+        double dz = targetZ - player.getZ();
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+        if (horizontal < 1.0E-4 && Math.abs(dy) < 1.0E-4) return;
+
+        float targetYaw = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
+        float targetPitch = (float) (-(Mth.atan2(dy, horizontal) * (180.0 / Math.PI)));
+        float yaw = player.getYRot() + Mth.wrapDegrees(targetYaw - player.getYRot()) * 0.28F;
+        float pitch = Mth.clamp(player.getXRot() + (targetPitch - player.getXRot()) * 0.28F, -90.0F, 90.0F);
+
+        // ServerGamePacketListenerImpl.teleport changes only the view/position packet;
+        // supplying the current coordinates prevents this from pulling the player.
+        player.connection.teleport(player.getX(), player.getY(), player.getZ(), yaw, pitch);
+    }
+
     private static void impactParticles(ImpactAnimation e) {
         RandomSource r = e.level.random;
         float t = Math.min(1.0F, e.age / 36.0F);
@@ -339,6 +371,9 @@ public final class ModMessages {
         sendParticles(e.level, e.focus, ParticleTypes.EXPLOSION_EMITTER, e.x, e.y, e.z, e.age < 5 ? 5 : 0, 2.5, 2.5, 2.5, 0);
     }
 
+    public static void armWatcher(ServerPlayer player, BlockPos pos) { ARMED_PLAYERS.add(player.getUUID()); ARMED_POS.put(player.getUUID(), pos.asLong()); ServerPlayNetworking.send(player, VEILLEUR_ANOMALY, PacketByteBufs.empty()); }
+    private static boolean isArmed(ServerPlayer player) { return ARMED_PLAYERS.contains(player.getUUID()); }
+    private static void clearArmed(ServerPlayer player) { ARMED_PLAYERS.remove(player.getUUID()); ARMED_POS.remove(player.getUUID()); }
     public static void beginFromDoor(ServerPlayer player) { beginSequence(player); }
     private static void beginSequence(ServerPlayer player) { if (ACTIVE_DIALOGUES.add(player.getUUID())) PENDING.add(new Pending(player, 100)); }
     public static boolean isFinished(ServerPlayer player) { return PocketDoorSavedData.get(player.getLevel()).isFinished(player.getUUID()); }

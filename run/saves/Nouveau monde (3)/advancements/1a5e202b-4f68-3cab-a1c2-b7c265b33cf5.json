@@ -1,0 +1,15 @@
+{
+  "minecraft:recipes/redstone/redstone": {
+    "criteria": {
+      "has_redstone_block": "2026-10-19 18:59:30 +0200"
+    },
+    "done": true
+  },
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:snowy_beach": "2026-10-19 18:59:06 +0200"
+    },
+    "done": false
+  },
+  "DataVersion": 3120
+}

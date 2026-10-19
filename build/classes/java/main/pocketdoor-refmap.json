@@ -14,10 +14,6 @@
     "fr/jmproduction/pocketdoor/mixin/CartostellaireGuiMixin": {
       "render": "Lnet/minecraft/class_329;method_1753(Lnet/minecraft/class_4587;F)V"
     },
-    "fr/jmproduction/pocketdoor/mixin/CartostellaireMouseHandlerMixin": {
-      "onScroll": "Lnet/minecraft/class_312;method_1598(JDD)V",
-      "turnPlayer": "Lnet/minecraft/class_312;method_1606()V"
-    },
     "fr/jmproduction/pocketdoor/mixin/CartostellaireScreenMixin": {
       "setScreen": "Lnet/minecraft/class_310;method_1507(Lnet/minecraft/class_437;)V"
     }
@@ -37,10 +33,6 @@
       },
       "fr/jmproduction/pocketdoor/mixin/CartostellaireGuiMixin": {
         "render": "Lnet/minecraft/class_329;method_1753(Lnet/minecraft/class_4587;F)V"
-      },
-      "fr/jmproduction/pocketdoor/mixin/CartostellaireMouseHandlerMixin": {
-        "onScroll": "Lnet/minecraft/class_312;method_1598(JDD)V",
-        "turnPlayer": "Lnet/minecraft/class_312;method_1606()V"
       },
       "fr/jmproduction/pocketdoor/mixin/CartostellaireScreenMixin": {
         "setScreen": "Lnet/minecraft/class_310;method_1507(Lnet/minecraft/class_437;)V"

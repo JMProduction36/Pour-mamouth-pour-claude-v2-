@@ -4,6 +4,7 @@ import fr.jmproduction.pocketdoor.block.ResonanceChamberBlock;
 
 
 import fr.jmproduction.pocketdoor.block.CartostellaireBlock;
+import fr.jmproduction.pocketdoor.block.VeilleurStellaireBlock;
 import fr.jmproduction.pocketdoor.block.entity.ResonanceChamberBlockEntity;
 import fr.jmproduction.pocketdoor.entity.PapierFoudreProjectile;
 import fr.jmproduction.pocketdoor.item.PapierFoudreItem;
@@ -61,6 +62,9 @@ public final class Content {
             new CartostellaireBlock(BlockBehaviour.Properties.of(Material.STONE)
                     .requiresCorrectToolForDrops()
                     .strength(5.0F)));
+
+    public static final Block VEILLEUR_STELLAIRE = registerBlock("veilleur_stellaire", new VeilleurStellaireBlock(BlockBehaviour.Properties.of(Material.STONE).requiresCorrectToolForDrops().strength(5.0F)));
+    public static final Item VEILLEUR_STELLAIRE_ITEM = registerItem("veilleur_stellaire", new BlockItem(VEILLEUR_STELLAIRE, new Item.Properties().tab(CreativeModeTab.TAB_DECORATIONS).rarity(Rarity.EPIC)));
 
     public static final Item CARTOSTELLAIRE_ITEM = registerItem(
             "cartostellaire",

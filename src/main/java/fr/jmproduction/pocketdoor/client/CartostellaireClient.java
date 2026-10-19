@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3;
 /** Client-only cinematic controller. The server remains authoritative for activation. */
 public final class CartostellaireClient {
     private static final int ASCENT_TICKS = 200;
+    private static final int RETURN_SPEED = 8;
     private static final double MAX_HEIGHT_ABOVE_BLOCK = 400.0D;
     private static int ticks;
     private static boolean running;
@@ -17,6 +18,9 @@ public final class CartostellaireClient {
     private static float originYaw;
     private static float originPitch;
     private static boolean previousHideGui;
+    private static boolean anomalyArmed;
+    public static void armAnomaly() { anomalyArmed = true; }
+    public static boolean consumeAnomaly() { boolean v=anomalyArmed; anomalyArmed=false; return v; }
 
     public static void start(BlockPos cartostellairePos) {
         Minecraft mc = Minecraft.getInstance();
@@ -42,7 +46,7 @@ public final class CartostellaireClient {
         freezePlayer(mc);
         if (!returning && ticks < ASCENT_TICKS) ticks++;
         else if (returning && ticks > 0) {
-            ticks--;
+            ticks = Math.max(0, ticks - RETURN_SPEED);
             if (ticks == 0) stop(mc);
         }
         if (!returning && ticks >= ASCENT_TICKS && mc.screen == null)

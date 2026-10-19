@@ -18,12 +18,13 @@ public class KeybindingsHandler implements ClientModInitializer {
         OPEN = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.pocketdoor.open", GLFW.GLFW_KEY_U, "category.pocketdoor"));
         METEORITE = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.pocketdoor.meteorite", GLFW.GLFW_KEY_M, "category.pocketdoor"));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            AnomalyController.tick(client);
             while (OPEN.consumeClick()) ClientPlayNetworking.send(ModMessages.OPEN_POCKET_DOOR, PacketByteBufs.empty());
             while (METEORITE.consumeClick()) {
                 if (client.player != null) client.player.displayClientMessage(net.minecraft.network.chat.Component.literal("[Pocket Door] M détectée : envoi du paquet météorite…"), true);
                 ClientPlayNetworking.send(ModMessages.SUMMON_METEORITE, PacketByteBufs.empty());
             }
         });
-        ClientPlayNetworking.registerGlobalReceiver(ModMessages.START_DIALOGUE, (client, handler, buf, responseSender) -> client.execute(DialogueController::start));
+        ClientPlayNetworking.registerGlobalReceiver(ModMessages.VEILLEUR_ANOMALY,(client,handler,buf,response)->client.execute(AnomalyController::arm)); ClientPlayNetworking.registerGlobalReceiver(ModMessages.START_DIALOGUE, (client, handler, buf, responseSender) -> client.execute(DialogueController::start));
     }
 }

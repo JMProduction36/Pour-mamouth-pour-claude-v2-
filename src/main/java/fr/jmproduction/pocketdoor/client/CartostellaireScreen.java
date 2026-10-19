@@ -35,6 +35,7 @@ public final class CartostellaireScreen extends Screen {
     private float panelSlide, mapCenterX, mapCenterY;
     private int panelScroll;
     private boolean scrollbarDragging;
+    
     private float scrollbarDragOffset;
 
     private static StarPoint[] createGalaxyStars() {
@@ -61,12 +62,14 @@ public final class CartostellaireScreen extends Screen {
 
     private static CelestialBody b(String n,String d,String s,String p,String a,float t,int c,float o){return new CelestialBody(n,d,s,p,a,t,c,o);}
     public CartostellaireScreen(){super(Component.literal("Cartostellaire"));}
-    @Override public void tick(){frame++;}
+    @Override public void tick(){ frame++; AnomalyController.onOverview(!inSystem, selectedSystem); }
     @Override public void render(PoseStack p,int mouseX,int mouseY,float partial){
         drawBackdrop(p); float target=panelOpen?1.0F:0.0F; panelSlide+=(target-panelSlide)*0.20F;
         drawHeader(p); float cx=width*0.5F, cy=Math.max(92,height*0.53F); mapCenterX=cx+panX; mapCenterY=cy+panY;
         p.pushPose(); p.translate(mapCenterX,mapCenterY,0); p.scale(zoom,zoom,1); if(inSystem) drawSystem(p); else drawGalaxy(p,partial); p.popPose();
-        if(panelSlide>0.01F) drawPanel(p); drawControls(p); drawCenteredString(p,font,Component.literal("MOLETTE : ZOOMER   •   GLISSER : EXPLORER   •   R : RECENTRER"),width/2,height-12,0xFF8290A8);
+        if(panelSlide>0.01F) drawPanel(p); drawControls(p);
+        if (AnomalyController.isFluctuation() || AnomalyController.isDetected()) drawCenteredString(p,font,AnomalyController.message(),width/2,48,0xFFFF6B73);
+        drawControls(p); drawCenteredString(p,font,Component.literal("MOLETTE : ZOOMER   •   GLISSER : EXPLORER   •   R : RECENTRER"),width/2,height-12,0xFF8290A8);
     }
     private void drawBackdrop(PoseStack p){
         // Fond uni sombre : seules les étoiles simples restent derrière la carte.
@@ -83,6 +86,29 @@ public final class CartostellaireScreen extends Screen {
     }
     private void drawHeader(PoseStack p){ drawString(p,font,Component.literal("CARTOSTELLAIRE"),18,14,0xFFC9A0FF); drawString(p,font,Component.literal(inSystem?"SYSTÈME // "+SYSTEMS[selectedSystem].name.toUpperCase():String.format("VUE GALACTIQUE // SYSTÈME %02d",SYSTEMS.length)),19,28,0xFF8290A8); fill(p,18,39,Math.min(width-18,310),40,0xFF6B4A94); }
     private void drawGalaxy(PoseStack p,float partial){
+        if (AnomalyController.isDetected()) {
+            float q=AnomalyController.markerProgress();
+            float eased=q*q*(3.0F-2.0F*q);
+            StarSystem target = SYSTEMS[AnomalyController.targetSystem()];
+            float targetX=target.x, targetY=target.y;
+            // Two readable legs: approach from outside to the chosen system, then
+            // travel to a stable point for the chosen planet. User zoom/pan is untouched.
+            float mx, my;
+            if (eased < 0.5F) {
+                float leg=eased*2.0F;
+                mx=300.0F+(targetX-300.0F)*leg;
+                my=-220.0F+(targetY+220.0F)*leg;
+            } else {
+                float leg=(eased-0.5F)*2.0F;
+                CelestialBody body=target.bodies[AnomalyController.targetPlanet()];
+                double angle=body.orbit+AnomalyController.targetPlanet()*2.0D*Math.PI/4.0D;
+                float planetX=targetX+(float)(Math.cos(angle)*(58+AnomalyController.targetPlanet()*42));
+                float planetY=targetY+(float)(Math.sin(angle)*(29+AnomalyController.targetPlanet()*18));
+                mx=targetX+(planetX-targetX)*leg;
+                my=targetY+(planetY-targetY)*leg;
+            }
+            fill(p,(int)mx-6,(int)my-6,(int)mx+7,(int)my+7,0xFFFF3030);
+        }
         // La spirale est dessinée avant les marqueurs afin de rester derrière eux.
         drawGalaxySpiral(p);
         for(int i=0;i<SYSTEMS.length;i++){StarSystem s=SYSTEMS[i]; double a=frame*.0007+i*.18; int x=(int)(s.x*Math.cos(a)-s.y*Math.sin(a)),y=(int)(s.x*Math.sin(a)+s.y*Math.cos(a)); s.screenX=mapCenterX+x*zoom; s.screenY=mapCenterY+y*zoom; halo(p,x,y,13,s.color); star(p,x,y,8,s.color); drawCenteredString(p,font,Component.literal(s.name),x,y+17,0xFFDDE3F2); }
@@ -273,7 +299,7 @@ public final class CartostellaireScreen extends Screen {
     }
     @Override public boolean keyPressed(int key,int scan,int mods){if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(key==GLFW.GLFW_KEY_BACKSPACE&&inSystem){inSystem=false;resetView();return true;}if(key==GLFW.GLFW_KEY_R){resetView();return true;}return super.keyPressed(key,scan,mods);}
     @Override public boolean isPauseScreen(){return false;}
-    @Override public void onClose(){CartostellaireClient.beginReturn();super.onClose();}
+    @Override public void onClose(){ AnomalyController.requestReturn(); CartostellaireClient.beginReturn(); super.onClose();}
     private static String gravity(CelestialBody w){return w.tertarium>.75F?"0,9 g":"0,6 g";} private static String temperature(CelestialBody w){return w.pressure.startsWith("0,")?"-78 °C":"+18 °C";} private static int shade(int rgb,float f){int r=Mth.clamp((int)(((rgb>>16)&255)*f),0,255),g=Mth.clamp((int)(((rgb>>8)&255)*f),0,255),b=Mth.clamp((int)((rgb&255)*f),0,255);return(r<<16)|(g<<8)|b;}
     private static final class StarPoint{final float x,y,brightness,phase;final int size,color;StarPoint(float a,float b,int s,int c,float br,float ph){x=a;y=b;size=s;color=c;brightness=br;phase=ph;}}
     private static final class StarSystem{final String name,description;final int color,x,y;final CelestialBody[] bodies;float screenX,screenY;StarSystem(String n,String d,int c,int px,int py,CelestialBody[] b){name=n;description=d;color=c;x=px;y=py;bodies=b;}}
