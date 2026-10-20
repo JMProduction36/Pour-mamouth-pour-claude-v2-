@@ -44,6 +44,7 @@ public final class ModMessages {
     public static final ResourceLocation CARTOSTELLAIRE_START = id("cartostellaire_start");
     public static final ResourceLocation VEILLEUR_ANOMALY = id("veilleur_anomaly");
     public static final ResourceLocation VEILLEUR_METEORITE = id("veilleur_meteorite");
+    public static final ResourceLocation VEILLEUR_SEQUENCE_STARTED = id("veilleur_sequence_started");
     private static final Map<UUID, Integer> COOLDOWNS = new HashMap<>();
     private static final Set<UUID> ARMED_PLAYERS = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, Long> ARMED_POS = new ConcurrentHashMap<>();
@@ -78,6 +79,10 @@ public final class ModMessages {
     public static void registerC2SPackets() {
         ServerPlayNetworking.registerGlobalReceiver(SUMMON_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> { player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Météorite invoquée")); summonMeteorite(player); }));
         ServerPlayNetworking.registerGlobalReceiver(VEILLEUR_METEORITE, (server, player, handler, buf, responseSender) -> server.execute(() -> { if (isArmed(player)) { clearArmed(player); summonMeteorite(player); } }));
+        // Keep the server-side arm through the client sequence.  The final meteorite packet
+        // is authorized by this arm after the player returns from the map; consuming it here
+        // made the later packet fail the isArmed(player) check and silently cancelled the meteorite.
+        ServerPlayNetworking.registerGlobalReceiver(VEILLEUR_SEQUENCE_STARTED, (server, player, handler, buf, responseSender) -> server.execute(() -> { /* sequence acknowledged */ }));
         ServerPlayNetworking.registerGlobalReceiver(OPEN_POCKET_DOOR, (server, player, handler, buf, responseSender) -> server.execute(() -> beginSequence(player)));
         ServerPlayNetworking.registerGlobalReceiver(DIALOGUE_FINISHED, (server, player, handler, buf, responseSender) -> server.execute(() -> {
             PocketDoorSavedData.get(player.getLevel()).markFinished(player.getUUID());
@@ -130,6 +135,10 @@ public final class ModMessages {
             double px = m.px(), py = m.py(), pz = m.pz();
             orientPlayerTo(m.player, px, py, pz);
             flightParticles(m, px, py, pz);
+            // The flight itself is destructive: this clears terrain crossed by the
+            // moving body, rather than waiting for the final crater.  The cap keeps
+            // a large meteorite from turning one server tick into a block-edit burst.
+            carveFlightTunnel(m, px, py, pz);
             m.age++;
             if (m.age >= m.flightTicks) { impact(m); METEORITES.remove(i); }
         }
@@ -195,6 +204,31 @@ public final class ModMessages {
         }
         if (m.age % 12 == 0) m.level.playSound(null, new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z)),
                 SoundEvents.GHAST_SHOOT, SoundSource.HOSTILE, 8.0F, 0.7F + m.level.random.nextFloat() * 0.35F);
+    }
+
+    private static void carveFlightTunnel(Meteorite m, double x, double y, double z) {
+        int tunnelRadius = Math.max(1, Mth.floor(m.radius * 0.8F));
+        int minX = Mth.floor(x) - tunnelRadius, maxX = Mth.floor(x) + tunnelRadius;
+        int minY = Math.max(m.level.getMinBuildHeight(), Mth.floor(y) - tunnelRadius);
+        int maxY = Math.min(m.level.getMaxBuildHeight() - 1, Mth.floor(y) + tunnelRadius);
+        int minZ = Mth.floor(z) - tunnelRadius, maxZ = Mth.floor(z) + tunnelRadius;
+        int edited = 0;
+        double radiusSq = tunnelRadius * tunnelRadius;
+        for (int bx = minX; bx <= maxX && edited < 180; bx++) {
+            for (int by = minY; by <= maxY && edited < 180; by++) {
+                for (int bz = minZ; bz <= maxZ && edited < 180; bz++) {
+                    double dx = bx + 0.5D - x, dy = by + 0.5D - y, dz = bz + 0.5D - z;
+                    if (dx * dx + dy * dy + dz * dz > radiusSq) continue;
+                    BlockPos pos = new BlockPos(bx, by, bz);
+                    if (!m.level.hasChunkAt(pos)) continue;
+                    BlockState state = m.level.getBlockState(pos);
+                    if (state.isAir() || state.is(Blocks.BEDROCK)) continue;
+                    // A negative destroy speed is Minecraft's unbreakable marker.
+                    if (state.getDestroySpeed(m.level, pos) < 0.0F) continue;
+                    if (m.level.destroyBlock(pos, false)) edited++;
+                }
+            }
+        }
     }
 
     private static void impact(Meteorite m) {

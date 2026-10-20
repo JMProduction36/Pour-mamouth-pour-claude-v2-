@@ -8,8 +8,8 @@ import net.minecraft.world.phys.Vec3;
 /** Client-only cinematic controller. The server remains authoritative for activation. */
 public final class CartostellaireClient {
     private static final int ASCENT_TICKS = 200;
-    private static final int RETURN_SPEED = 8;
-    private static final double MAX_HEIGHT_ABOVE_BLOCK = 400.0D;
+    private static final int RETURN_SPEED = 2;
+    private static final double MAX_HEIGHT_ABOVE_BLOCK = 380.0D;
     private static int ticks;
     private static boolean running;
     private static boolean returning;
