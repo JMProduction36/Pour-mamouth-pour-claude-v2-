@@ -1,1 +1,6 @@
-{"block.pocketdoor.cartostellaire":"Cartostellaire","screen.pocketdoor.cartostellaire":"Carte de la galaxie","screen.pocketdoor.cartostellaire.hint":"Échap pour fermer"}
+{
+  "block.pocketdoor.cartostellaire": "Cartostellaire",
+  "screen.pocketdoor.cartostellaire": "Carte de la galaxie",
+  "screen.pocketdoor.cartostellaire.hint": "Échap pour fermer",
+  "dimension.pocketdoor.ossuaire_flottant": "Le Rocher flottant de l'Ossuaire"
+}

@@ -25,6 +25,8 @@ public class KeybindingsHandler implements ClientModInitializer {
                 ClientPlayNetworking.send(ModMessages.SUMMON_METEORITE, PacketByteBufs.empty());
             }
         });
-        ClientPlayNetworking.registerGlobalReceiver(ModMessages.VEILLEUR_ANOMALY,(client,handler,buf,response)->client.execute(AnomalyController::arm)); ClientPlayNetworking.registerGlobalReceiver(ModMessages.START_DIALOGUE, (client, handler, buf, responseSender) -> client.execute(DialogueController::start));
+        ClientPlayNetworking.registerGlobalReceiver(ModMessages.VEILLEUR_ANOMALY,(client,handler,buf,response)->client.execute(AnomalyController::arm));
+        ClientPlayNetworking.registerGlobalReceiver(ModMessages.VEILLEUR_METEORITE_FINISHED, (client, handler, buf, responseSender) -> client.execute(() -> AnomalyController.onMeteoriteFinished(client)));
+        ClientPlayNetworking.registerGlobalReceiver(ModMessages.START_DIALOGUE, (client, handler, buf, responseSender) -> client.execute(DialogueController::start));
     }
 }

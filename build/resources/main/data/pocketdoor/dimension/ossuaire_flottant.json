@@ -1,0 +1,11 @@
+{
+  "type": "pocketdoor:ossuaire_flottant",
+  "generator": {
+    "type": "minecraft:noise",
+    "settings": "pocketdoor:ossuaire_flottant",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "pocketdoor:ossuaire_flottant"
+    }
+  }
+}

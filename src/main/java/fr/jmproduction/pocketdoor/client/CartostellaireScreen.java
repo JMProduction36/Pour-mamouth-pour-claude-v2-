@@ -62,23 +62,13 @@ public final class CartostellaireScreen extends Screen {
 
     private static CelestialBody b(String n,String d,String s,String p,String a,float t,int c,float o){return new CelestialBody(n,d,s,p,a,t,c,o);}
     public CartostellaireScreen(){super(Component.literal("Cartostellaire"));}
-    public static String systemName(int index) {
-        if (index < 0 || index >= SYSTEMS.length) return "Système inconnu";
-        return SYSTEMS[index].name;
-    }
-    public static String planetName(int system, int planet) {
-        if (system < 0 || system >= SYSTEMS.length) return "Planète inconnue";
-        CelestialBody[] bodies = SYSTEMS[system].bodies;
-        if (planet < 0 || planet >= bodies.length) return "Planète inconnue";
-        return bodies[planet].name;
-    }
     @Override public void tick(){ frame++; AnomalyController.onOverview(!inSystem, selectedSystem); }
     @Override public void render(PoseStack p,int mouseX,int mouseY,float partial){
         drawBackdrop(p); float target=panelOpen?1.0F:0.0F; panelSlide+=(target-panelSlide)*0.20F;
         drawHeader(p); float cx=width*0.5F, cy=Math.max(92,height*0.53F); mapCenterX=cx+panX; mapCenterY=cy+panY;
         p.pushPose(); p.translate(mapCenterX,mapCenterY,0); p.scale(zoom,zoom,1); if(inSystem) drawSystem(p); else drawGalaxy(p,partial); p.popPose();
         if(panelSlide>0.01F) drawPanel(p); drawControls(p);
-        drawAlarm(p);
+        if (AnomalyController.isFluctuation() || AnomalyController.isDetected()) drawCenteredString(p,font,AnomalyController.message(),width/2,48,0xFFFF6B73);
         drawControls(p); drawCenteredString(p,font,Component.literal("MOLETTE : ZOOMER   •   GLISSER : EXPLORER   •   R : RECENTRER"),width/2,height-12,0xFF8290A8);
     }
     private void drawBackdrop(PoseStack p){
@@ -96,20 +86,32 @@ public final class CartostellaireScreen extends Screen {
     }
     private void drawHeader(PoseStack p){ drawString(p,font,Component.literal("CARTOSTELLAIRE"),18,14,0xFFC9A0FF); drawString(p,font,Component.literal(inSystem?"SYSTÈME // "+SYSTEMS[selectedSystem].name.toUpperCase():String.format("VUE GALACTIQUE // SYSTÈME %02d",SYSTEMS.length)),19,28,0xFF8290A8); fill(p,18,39,Math.min(width-18,310),40,0xFF6B4A94); }
     private void drawGalaxy(PoseStack p,float partial){
+        if (AnomalyController.isDetected()) {
+            float q=AnomalyController.markerProgress();
+            float eased=q*q*(3.0F-2.0F*q);
+            StarSystem target = SYSTEMS[AnomalyController.targetSystem()];
+            float targetX=target.x, targetY=target.y;
+            // Two readable legs: approach from outside to the chosen system, then
+            // travel to a stable point for the chosen planet. User zoom/pan is untouched.
+            float mx, my;
+            if (eased < 0.5F) {
+                float leg=eased*2.0F;
+                mx=300.0F+(targetX-300.0F)*leg;
+                my=-220.0F+(targetY+220.0F)*leg;
+            } else {
+                float leg=(eased-0.5F)*2.0F;
+                CelestialBody body=target.bodies[AnomalyController.targetPlanet()];
+                double angle=body.orbit+AnomalyController.targetPlanet()*2.0D*Math.PI/4.0D;
+                float planetX=targetX+(float)(Math.cos(angle)*(58+AnomalyController.targetPlanet()*42));
+                float planetY=targetY+(float)(Math.sin(angle)*(29+AnomalyController.targetPlanet()*18));
+                mx=targetX+(planetX-targetX)*leg;
+                my=targetY+(planetY-targetY)*leg;
+            }
+            fill(p,(int)mx-6,(int)my-6,(int)mx+7,(int)my+7,0xFFFF3030);
+        }
+        // La spirale est dessinée avant les marqueurs afin de rester derrière eux.
         drawGalaxySpiral(p);
         for(int i=0;i<SYSTEMS.length;i++){StarSystem s=SYSTEMS[i]; double a=frame*.0007+i*.18; int x=(int)(s.x*Math.cos(a)-s.y*Math.sin(a)),y=(int)(s.x*Math.sin(a)+s.y*Math.cos(a)); s.screenX=mapCenterX+x*zoom; s.screenY=mapCenterY+y*zoom; halo(p,x,y,13,s.color); star(p,x,y,8,s.color); drawCenteredString(p,font,Component.literal(s.name),x,y+17,0xFFDDE3F2); }
-        if (AnomalyController.isDetected() || AnomalyController.markerArrived()) {
-            StarSystem target=SYSTEMS[AnomalyController.targetSystem()];
-            double a=frame*.0007+AnomalyController.targetSystem()*.18;
-            float tx=(float)(target.x*Math.cos(a)-target.y*Math.sin(a));
-            float ty=(float)(target.x*Math.sin(a)+target.y*Math.cos(a));
-            drawMarker(p,300.0F,-220.0F,tx,ty,AnomalyController.markerProgress());
-        }
-    }
-    private void drawMarker(PoseStack p,float sx,float sy,float tx,float ty,float q){
-        float e=Mth.clamp(q,0.0F,1.0F); float mx=sx+(tx-sx)*e, my=sy+(ty-sy)*e;
-        int size=e>=1.0F?4:6; float pulse=.75F+.25F*(float)Math.sin(frame*.18F); int red=(int)(255.0F*pulse);
-        fill(p,(int)mx-size,(int)my-size,(int)mx+size+1,(int)my+size+1,0xFF000000|(red<<16)|0x300000);
     }
 
     private void drawGalaxySpiral(PoseStack p){
@@ -133,12 +135,6 @@ public final class CartostellaireScreen extends Screen {
     private void drawSystem(PoseStack p){
         for(int r=0;r<4;r++) orbit(p,58+r*42,29+r*18,r==selectedPlanet); halo(p,0,0,22,0xFFFFD27D); star(p,0,0,11,0xFFFFD27D);
         CelestialBody[] bs=SYSTEMS[selectedSystem].bodies; for(int i=0;i<bs.length;i++){CelestialBody b=bs[i]; double a=b.orbit+(i*2.0D*Math.PI/4.0D)+frame*(.002+i*.00035); int x=(int)(Math.cos(a)*(58+i*42)),y=(int)(Math.sin(a)*(29+i*18)); b.screenX=mapCenterX+x*zoom;b.screenY=mapCenterY+y*zoom; halo(p,x,y,10,b.color);cube(p,x,y,7+i,b.color); if(i==selectedPlanet){int k=13+i; fill(p,x-k,y-k,x-k+4,y-k+1,0xFFE8D7FF);fill(p,x+k-4,y-k,x+k,y-k+1,0xFFE8D7FF);fill(p,x-k,y+k-1,x-k+4,y+k,0xFFE8D7FF);fill(p,x+k-4,y+k-1,x+k,y+k,0xFFE8D7FF); drawCenteredString(p,font,Component.literal(b.name),x,y+18+i,0xFFF4E9FF);} else { /* labels intentionally quiet */ } }
-        if (AnomalyController.planetTraveling()) {
-            int i=AnomalyController.targetPlanet(); CelestialBody target=bs[i];
-            double angle=target.orbit+i*2.0D*Math.PI/4.0D+frame*(.002D+i*.00035D);
-            float tx=(float)(Math.cos(angle)*(58+i*42)), ty=(float)(Math.sin(angle)*(29+i*18));
-            drawMarker(p,300.0F,-220.0F,tx,ty,AnomalyController.planetProgress());
-        }
     }
     private void orbit(PoseStack p,int rx,int ry,boolean selected){
         float pulse=0.78F+0.22F*(float)Math.sin(frame*.055D+(double)rx*.03D);
@@ -244,80 +240,14 @@ public final class CartostellaireScreen extends Screen {
     }
     private int drawWrapHeight(String text,int maxWidth,int maxLines){return 11*Math.min(maxLines,font.split(Component.literal(text),Math.max(1,maxWidth)).size());}
     private int drawWrap(PoseStack p,String text,int x,int y,int right,int max,int color){List<net.minecraft.util.FormattedCharSequence> lines=font.split(Component.literal(text),Math.max(1,right-x));int n=Math.min(max,lines.size());for(int i=0;i<n;i++)drawString(p,font,lines.get(i),x,y+i*11,color);return y+n*11;}
-    /** Draws the atmospheric alarm only inside the header space not occupied by the title or controls. */
-    private void drawAlarm(PoseStack p){
-        String value=AnomalyController.message().getString();
-        if(value.isEmpty()) return;
-
-        int blink=(int)((frame/7)%2);
-        int color=blink==0?0xFFFF6B73:0xFFFFD6A0;
-        String atmosphericPrefix="Entrée de l'anomalie dans l'atmosphère de la";
-        boolean atmospheric=value.startsWith(atmosphericPrefix+" planète ");
-
-        // The usable band starts after the widest header label, and ends before the
-        // left edge of whichever right-hand control is encountered first.
-        int titleEnd=18+font.width("CARTOSTELLAIRE");
-        String subtitle=inSystem?"SYSTÈME // "+SYSTEMS[selectedSystem].name.toUpperCase():String.format("VUE GALACTIQUE // SYSTÈME %02d",SYSTEMS.length);
-        int subtitleEnd=19+font.width(subtitle);
-        int headerLeft=Math.max(titleEnd,subtitleEnd)+8;
-        int controlsLeft=width-38;
-        int toggleLeft=width-12-(int)(PANEL_W*panelSlide)-27;
-        int headerRight=Math.min(controlsLeft,toggleLeft)-8;
-        int availableWidth=headerRight-headerLeft;
-
-        if(!atmospheric){
-            // Keep the single-line alarms centered in the same usable header band.
-            int alarmCenterX=(headerLeft+headerRight)/2;
-            int alarmY=20-font.lineHeight/2;
-            drawCenteredString(p,font,Component.literal(value),alarmCenterX,alarmY,color);
-            return;
-        }
-
-        List<net.minecraft.util.FormattedCharSequence> lines=new ArrayList<>();
-        if(availableWidth>0){
-            String planetLine=value.substring(atmosphericPrefix.length()+1);
-            if(font.width(atmosphericPrefix)<=availableWidth && font.width(planetLine)<=availableWidth){
-                lines.add(Component.literal(atmosphericPrefix).getVisualOrderText());
-                lines.add(Component.literal(planetLine).getVisualOrderText());
-            } else {
-                lines.addAll(font.split(Component.literal(value),availableWidth));
-                if(lines.size()>3) lines=new ArrayList<>(lines.subList(0,3));
-            }
-        }
-
-        // If the open panel leaves no meaningful header band, use the area below
-        // the separator, to the right of the GALAXIE button, rather than overlap labels.
-        if(lines.isEmpty() || availableWidth<24){
-            int fallbackLeft=inSystem?102:headerLeft;
-            int fallbackRight=Math.max(fallbackLeft+1,headerRight);
-            int fallbackWidth=Math.max(1,fallbackRight-fallbackLeft);
-            lines=new ArrayList<>(font.split(Component.literal(value),fallbackWidth));
-            if(lines.size()>3) lines=new ArrayList<>(lines.subList(0,3));
-            int firstY=44;
-            for(int i=0;i<lines.size();i++){
-                int lineWidth=font.width(lines.get(i));
-                int x=fallbackLeft+(fallbackWidth-lineWidth)/2;
-                drawString(p,font,lines.get(i),x,firstY+i*12,color);
-            }
-            return;
-        }
-
-        int blockHeight=(lines.size()-1)*12;
-        int firstY=20-blockHeight/2;
-        int centerX=(headerLeft+headerRight)/2;
-        for(int i=0;i<lines.size();i++){
-            drawCenteredString(p,font,lines.get(i),centerX,firstY+i*12,color);
-        }
-    }
-
     private void drawControls(PoseStack p){
         int x=width-38;
         fill(p,x,14,width-14,38,0xFF273149);
         drawCenteredString(p,font,Component.literal("×"),x+12,19,0xFFE5C7FF);
         if(inSystem){fill(p,18,45,94,63,0xFF273149);drawString(p,font,Component.literal("← GALAXIE"),25,50,0xFFE5C7FF);}
         int a=width-12-(int)(PANEL_W*panelSlide)-27;
-        fill(p,a,42,a+22,66,0xFF273149);
-        drawCenteredString(p,font,Component.literal(panelOpen?"›":"‹"),a+11,47,0xFFE5C7FF);
+        fill(p,a,14,a+22,38,0xFF273149);
+        drawCenteredString(p,font,Component.literal(panelOpen?"›":"‹"),a+11,19,0xFFE5C7FF);
     }
     private boolean insidePanel(double x,double y){
         int right=width-12,left=right-(int)(PANEL_W*panelSlide);
@@ -339,7 +269,7 @@ public final class CartostellaireScreen extends Screen {
         if(x>=width-44&&y<=44){onClose();return true;}
         if(inSystem&&x>=16&&x<=100&&y>=42&&y<=70){inSystem=false;resetView();return true;}
         int toggle=width-12-(int)(PANEL_W*panelSlide)-30;
-        if(x>=toggle&&x<=width-10&&y>=40&&y<=70){panelOpen=!panelOpen;return true;}
+        if(x>=toggle&&x<=width-10&&y<=44){panelOpen=!panelOpen;return true;}
         if(onScrollbar(x,y)){scrollbarDragging=true;return true;}
         if(insidePanel(x,y)){
             if(inSystem){
@@ -354,7 +284,7 @@ public final class CartostellaireScreen extends Screen {
         }
         float best=Float.MAX_VALUE;int hit=-1;
         if(inSystem){CelestialBody[] bs=SYSTEMS[selectedSystem].bodies;for(int i=0;i<bs.length;i++){float d=(float)Math.hypot((float)(x-bs[i].screenX),(float)(y-bs[i].screenY));float r=9+i;if(d<=r&&d<best){best=d;hit=i;}}if(hit>=0){selectedPlanet=hit;panelOpen=true;resetView();return true;}}
-        else{for(int i=0;i<SYSTEMS.length;i++){float d=(float)Math.hypot((float)(x-SYSTEMS[i].screenX),(float)(y-SYSTEMS[i].screenY));if(d<=13&&d<best){best=d;hit=i;}}if(hit>=0){selectedSystem=hit;inSystem=true;selectedPlanet=0;panelOpen=true;resetView();AnomalyController.onSystemSelected(hit);return true;}}
+        else{for(int i=0;i<SYSTEMS.length;i++){float d=(float)Math.hypot((float)(x-SYSTEMS[i].screenX),(float)(y-SYSTEMS[i].screenY));if(d<=13&&d<best){best=d;hit=i;}}if(hit>=0){selectedSystem=hit;inSystem=true;selectedPlanet=0;panelOpen=true;resetView();return true;}}
         if(button==GLFW.GLFW_MOUSE_BUTTON_LEFT||button==GLFW.GLFW_MOUSE_BUTTON_MIDDLE){dragging=true;dragX=(float)x-panX;dragY=(float)y-panY;return true;}
         return super.mouseClicked(x,y,button);
     }

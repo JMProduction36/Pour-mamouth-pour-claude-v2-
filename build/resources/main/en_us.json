@@ -1,1 +1,6 @@
-{"block.pocketdoor.cartostellaire":"Cartostellaire","screen.pocketdoor.cartostellaire":"Galaxy map","screen.pocketdoor.cartostellaire.hint":"Press ESC to close"}
+{
+  "block.pocketdoor.cartostellaire": "Cartostellaire",
+  "screen.pocketdoor.cartostellaire": "Galaxy map",
+  "screen.pocketdoor.cartostellaire.hint": "Press ESC to close",
+  "dimension.pocketdoor.ossuaire_flottant": "The Floating Rock of the Ossuary"
+}
